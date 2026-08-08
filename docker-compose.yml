@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://sms_user:sms_password@db:5432/sms_db
+      SECRET_KEY: change_this_in_production
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sms_user
+      POSTGRES_PASSWORD: sms_password
+      POSTGRES_DB: sms_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - sms_pgdata:/var/lib/postgresql/data
+
+volumes:
+  sms_pgdata:
