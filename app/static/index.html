@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Management System</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">SMS</span>
+      <span class="brand-name">Student Management System</span>
+    </div>
+    <div id="session-info" class="session-info hidden">
+      <span id="session-email"></span>
+      <span id="session-role" class="role-badge"></span>
+      <button id="logout-btn" class="btn-ghost">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main class="app-main">
+
+  <!-- AUTH VIEW -->
+  <section id="auth-view" class="auth-view">
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Sign in</button>
+        <button class="auth-tab" data-tab="register">Register</button>
+      </div>
+
+      <form id="login-form" class="auth-form">
+        <label>Email
+          <input type="email" id="login-email" required autocomplete="username">
+        </label>
+        <label>Password
+          <input type="password" id="login-password" required autocomplete="current-password">
+        </label>
+        <button type="submit" class="btn-primary">Sign in</button>
+        <p class="form-error" id="login-error"></p>
+      </form>
+
+      <form id="register-form" class="auth-form hidden">
+        <label>Email
+          <input type="email" id="register-email" required autocomplete="username">
+        </label>
+        <label>Password
+          <input type="password" id="register-password" required minlength="6" autocomplete="new-password">
+        </label>
+        <label>Role
+          <select id="register-role">
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <button type="submit" class="btn-primary">Create account</button>
+        <p class="form-error" id="register-error"></p>
+      </form>
+
+      <p class="auth-hint">Demo admin (after running <code>seed.py</code>): <code>admin@sms.com</code> / <code>admin123</code></p>
+    </div>
+  </section>
+
+  <!-- APP VIEW -->
+  <section id="app-view" class="app-view hidden">
+
+    <nav class="tabs">
+      <button class="tab active" data-panel="students">Students</button>
+      <button class="tab" data-panel="courses">Courses</button>
+      <button class="tab" data-panel="enrollments">Enrollments</button>
+      <button class="tab" data-panel="transcript">Transcript</button>
+    </nav>
+
+    <!-- STUDENTS -->
+    <div id="panel-students" class="panel active">
+      <div class="panel-head">
+        <h2>Students</h2>
+        <div class="panel-controls">
+          <input type="search" id="student-search" placeholder="Search name or roll no.">
+          <input type="text" id="student-dept-filter" placeholder="Department">
+          <button id="student-search-btn" class="btn-secondary">Filter</button>
+          <button id="student-new-btn" class="btn-primary" data-role-gate="admin,teacher">+ New Student</button>
+        </div>
+      </div>
+
+      <table class="ledger">
+        <thead>
+          <tr>
+            <th>Roll No.</th><th>Name</th><th>Email</th><th>Dept</th><th>Year</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="students-tbody"></tbody>
+      </table>
+      <div class="pager">
+        <button id="students-prev" class="btn-ghost">&larr; Prev</button>
+        <span id="students-page-info"></span>
+        <button id="students-next" class="btn-ghost">Next &rarr;</button>
+      </div>
+    </div>
+
+    <!-- COURSES -->
+    <div id="panel-courses" class="panel">
+      <div class="panel-head">
+        <h2>Courses</h2>
+        <div class="panel-controls">
+          <button id="course-new-btn" class="btn-primary" data-role-gate="admin,teacher">+ New Course</button>
+        </div>
+      </div>
+      <table class="ledger">
+        <thead><tr><th>Code</th><th>Title</th><th>Credits</th><th>Dept</th><th></th></tr></thead>
+        <tbody id="courses-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- ENROLLMENTS -->
+    <div id="panel-enrollments" class="panel">
+      <div class="panel-head">
+        <h2>Enroll a Student</h2>
+      </div>
+      <form id="enroll-form" class="inline-form" data-role-gate="admin,teacher">
+        <label>Student ID <input type="number" id="enroll-student-id" required min="1"></label>
+        <label>Course ID <input type="number" id="enroll-course-id" required min="1"></label>
+        <button type="submit" class="btn-primary">Enroll</button>
+      </form>
+      <p class="form-error" id="enroll-error"></p>
+
+      <h3 class="subhead">Record a Grade</h3>
+      <form id="grade-form" class="inline-form" data-role-gate="admin,teacher">
+        <label>Enrollment ID <input type="number" id="grade-enrollment-id" required min="1"></label>
+        <label>Grade (0-100) <input type="number" id="grade-value" required min="0" max="100" step="0.1"></label>
+        <button type="submit" class="btn-primary">Save Grade</button>
+      </form>
+      <p class="form-error" id="grade-error"></p>
+      <p class="hint">Tip: find IDs from the Students and Courses tables above.</p>
+    </div>
+
+    <!-- TRANSCRIPT -->
+    <div id="panel-transcript" class="panel">
+      <div class="panel-head">
+        <h2>Transcript</h2>
+        <div class="panel-controls">
+          <input type="number" id="transcript-student-id" placeholder="Student ID" min="1">
+          <button id="transcript-fetch-btn" class="btn-primary">View</button>
+        </div>
+      </div>
+      <div id="transcript-result"></div>
+    </div>
+
+  </section>
+</main>
+
+<!-- New Student Modal -->
+<div id="student-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>New Student</h3>
+    <form id="student-form">
+      <label>Roll Number <input type="text" id="s-roll" required></label>
+      <label>First Name <input type="text" id="s-first" required></label>
+      <label>Last Name <input type="text" id="s-last" required></label>
+      <label>Email <input type="email" id="s-email" required></label>
+      <label>Department <input type="text" id="s-dept" required></label>
+      <label>Year of Study <input type="number" id="s-year" min="1" max="6" required></label>
+      <p class="form-error" id="student-form-error"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="student-modal-cancel">Cancel</button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- New Course Modal -->
+<div id="course-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>New Course</h3>
+    <form id="course-form">
+      <label>Code <input type="text" id="c-code" required></label>
+      <label>Title <input type="text" id="c-title" required></label>
+      <label>Credits <input type="number" id="c-credits" min="1" max="10" value="3" required></label>
+      <label>Department <input type="text" id="c-dept" required></label>
+      <p class="form-error" id="course-form-error"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="course-modal-cancel">Cancel</button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
