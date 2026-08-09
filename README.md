@@ -125,6 +125,55 @@ curl -X POST http://127.0.0.1:8000/students \
   -d '{"roll_number":"SVIT001","first_name":"Manjunath","last_name":"KR","email":"manjunath@sms.com","department":"CSE","year_of_study":3}'
 ```
 
+## Frontend
+
+A lightweight vanilla HTML/CSS/JS frontend lives in `app/static/` and is served
+directly by FastAPI at `/` (via `StaticFiles`) — no separate frontend server,
+build step, or `npm install` needed. It covers registration/login, student
+CRUD with search & pagination, course management, enrollment + grading, and
+a transcript/GPA view, all against the same REST API described below.
+
+**Route precedence matters here:** in `app/main.py`, the API routers
+(`/auth`, `/students`, `/courses`, `/enrollments`, `/health`) are registered
+*before* the static mount at `/`. Starlette matches routes in registration
+order, so API paths resolve to the API and everything else falls through to
+the static files — that's what makes both "the frontend loads at `/`" and
+"the API still works" true at once. If you ever see `{"detail":"Not Found"}`
+at `/`, it means either the static mount is missing/misordered, or the
+`app/static/index.html` file didn't make it into the deployed build.
+
+## Deploying to Render
+
+This repo includes a `render.yaml` Blueprint, so the easiest path is:
+**New → Blueprint** in the Render dashboard, point it at this repo, and Render
+reads the config automatically.
+
+If configuring manually instead (New → Web Service), set:
+
+| Setting | Value |
+|---|---|
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Health Check Path | `/health` |
+
+**The two things that most commonly break this on Render:**
+1. **Binding to the wrong host/port.** Render assigns a port at runtime via
+   the `$PORT` environment variable and routes traffic to it — the app must
+   bind to `0.0.0.0:$PORT`, not `127.0.0.1` or a hardcoded port, or Render's
+   health checks and routing can't reach it.
+2. **The static frontend not being present in the deployed build.** Since
+   `app/static/` is committed to the repo, this isn't an issue as long as
+   you're deploying from this repo as-is — but if you regenerate or `.gitignore`
+   that folder later, the root route will 404 again.
+
+**Database note:** the default `sqlite:///./sms.db` works for a demo, but
+Render's free-tier filesystem is ephemeral — data is wiped on every redeploy
+or restart. For anything you want to persist, either add a
+[Render Disk](https://render.com/docs/disks) mounted at the app's working
+directory, or point `DATABASE_URL` at a managed Postgres instance (Render
+offers this natively; SQLAlchemy needs no code changes, just the connection
+string and `psycopg2-binary` added to `requirements.txt`).
+
 ## Possible Extensions
 
 - Alembic migrations for schema versioning in production.
