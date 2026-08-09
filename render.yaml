@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: student-management-system
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # Render sets $PORT at runtime -- must bind to 0.0.0.0:$PORT, not a
+    # hardcoded port or 127.0.0.1, or the health check / routing fails.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:///./sms.db
+      - key: PYTHON_VERSION
+        value: 3.12.3
